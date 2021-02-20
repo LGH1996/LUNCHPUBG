@@ -4,7 +4,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.widget.Toast;
 
 import java.io.FileInputStream;
@@ -26,11 +30,16 @@ public class MainActivity extends Activity {
         path = getExternalCacheDir().getAbsolutePath() + "/../../com.tencent.tmgp.pubgmhd/files/UE4Game/ShadowTrackerExtra/ShadowTrackerExtra/Saved/Config/Android/UserCustom.ini";
         Intent intent = getPackageManager().getLaunchIntentForPackage("com.tencent.tmgp.pubgmhd");
         if (intent != null) {
-            boolean readPermission = checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
-            boolean writePermission = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED;
-            if (readPermission || writePermission) {
+            boolean readPermission = checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            boolean writePermission = checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            if (!readPermission || !writePermission) {
                 requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0x00);
                 Toast.makeText(this, "请授予应用存储读写权限", Toast.LENGTH_SHORT).show();
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+                Intent permissionIntent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                permissionIntent.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(permissionIntent);
+                Toast.makeText(this, "请授予应用存储管理权限", Toast.LENGTH_SHORT).show();
             } else {
                 if (check()) {
                     startActivity(intent);
@@ -61,8 +70,9 @@ public class MainActivity extends Activity {
         try {
             Scanner scanner = new Scanner(new FileInputStream(path));
             StringBuilder stringBuilder = new StringBuilder();
-            while (scanner.hasNextLine())
+            while (scanner.hasNextLine()) {
                 stringBuilder.append(scanner.nextLine());
+            }
             scanner.close();
             String s = stringBuilder.toString();
             return (s.contains(str_0) && s.contains(str_1) && s.contains(str_2) && s.contains(str_3));
@@ -71,5 +81,4 @@ public class MainActivity extends Activity {
             return false;
         }
     }
-
 }
